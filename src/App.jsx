@@ -66,14 +66,14 @@ export default function App() {
     link.href = 'https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=JetBrains+Mono:wght@400;600&family=Outfit:wght@300;400;500;600;700&display=swap'
     link.rel = 'stylesheet'
     document.head.appendChild(link)
-    const t = storage.get('ifvg_trades')
-    const u = storage.get('ifvg_user')
+    const t = storage.get('edge_trades')
+    const u = storage.get('edge_user')
     if (t) setTrades(t)
     if (u) { setUser(u); setPage(PAGES.DASHBOARD) }
   }, [])
 
-  const saveTrades = (t) => { setTrades(t); storage.set('ifvg_trades', t) }
-  const handleLogin = (u) => { setUser(u); storage.set('ifvg_user', u); setPage(PAGES.DASHBOARD) }
+  const saveTrades = (t) => { setTrades(t); storage.set('edge_trades', t) }
+  const handleLogin = (u) => { setUser(u); storage.set('edge_user', u); setPage(PAGES.DASHBOARD) }
   const handleAddTrade = (trade) => { saveTrades([...trades, { ...trade, id: Date.now() }]); setPage(PAGES.DASHBOARD) }
 
   if (page === PAGES.LOGIN) return <Login onLogin={handleLogin} isMobile={isMobile} />
@@ -113,7 +113,7 @@ function Login({ onLogin, isMobile }) {
   return (
     <div style={{ background: '#f4f5f7', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 16px' }}>
       <div style={{ width: '100%', maxWidth: 360, textAlign: 'center' }}>
-        <div style={{ fontFamily: C.brand, color: C.accent, fontSize: 22, letterSpacing: 6, marginBottom: 6 }}>IFVG</div>
+        <div style={{ fontFamily: C.brand, color: C.accent, fontSize: 22, letterSpacing: 6, marginBottom: 6 }}>EDGE</div>
         <div style={{ color: C.textDim, fontSize: 11, letterSpacing: 3, marginBottom: 36, fontFamily: C.mono }}>TRADING JOURNAL</div>
         <div style={{ background: '#fff', border: `1px solid ${C.border}`, borderRadius: 16, padding: isMobile ? 24 : 32, boxShadow: '0 4px 24px rgba(0,0,0,0.06)' }}>
           <input value={username} onChange={e => setUsername(e.target.value)} placeholder="Usuario"
@@ -121,7 +121,7 @@ function Login({ onLogin, isMobile }) {
           <input type="password" placeholder="Contrasena" style={{ ...inputSt, marginTop: 12 }} onKeyDown={e => e.key === 'Enter' && submit()} />
           <button onClick={submit} style={{ ...btnP, width: '100%', marginTop: 18, padding: '13px' }}>Ingresar</button>
         </div>
-        <div style={{ color: C.textDim, fontSize: 10, marginTop: 18, fontFamily: C.mono }}>IFVG Journal · Raulo & Samy · v1.0</div>
+        <div style={{ color: C.textDim, fontSize: 10, marginTop: 18, fontFamily: C.mono }}>Edge Journal · v1.0</div>
       </div>
     </div>
   )
@@ -131,7 +131,7 @@ function Sidebar({ page, setPage, user }) {
   return (
     <div style={{ width: 200, background: C.bgSidebar, display: 'flex', flexDirection: 'column', padding: '24px 0', flexShrink: 0 }}>
       <div style={{ padding: '0 20px 24px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-        <div style={{ fontFamily: C.brand, color: '#fff', fontSize: 14, letterSpacing: 4 }}>IFVG</div>
+        <div style={{ fontFamily: C.brand, color: '#fff', fontSize: 14, letterSpacing: 4 }}>EDGE</div>
         <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 9, letterSpacing: 2, marginTop: 3, fontFamily: C.mono }}>TRADING JOURNAL</div>
       </div>
       <div style={{ flex: 1, padding: '16px 12px', display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -231,7 +231,7 @@ function Dashboard({ trades, setPage, isMobile }) {
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 280px', gap: isMobile ? 14 : 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 280px', gap: 14 }}>
         <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 12, padding: isMobile ? '16px' : '20px 22px', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
           <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 14, color: C.text }}>Calendario de Performance</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: isMobile ? 3 : 4 }}>
@@ -407,12 +407,12 @@ function MentorIA({ trades, isMobile }) {
       const res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 1000,
-          system: `Mentor de trading IFVG/ICT. Espanol argentino, directo. ${ctx}`,
+          system: `Eres el Mentor IA de Edge Journal. Trading ICT/Smart Money. Español argentino, directo y preciso. ${ctx}`,
           messages: msgs.concat({ role: 'user', text: txt }).slice(-12).map(m => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.text })) })
       })
       const data = await res.json()
       setMsgs(m => [...m, { role: 'assistant', text: data.content?.[0]?.text || 'Error.' }])
-    } catch { setMsgs(m => [...m, { role: 'assistant', text: 'El Mentor IA funciona completamente cuando subamos a Vercel.' }]) }
+    } catch { setMsgs(m => [...m, { role: 'assistant', text: 'Conectando con el servidor...' }]) }
     setLoading(false)
   }
 
