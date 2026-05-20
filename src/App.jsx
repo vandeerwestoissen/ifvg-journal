@@ -89,7 +89,6 @@ export default function App() {
       overflow: 'hidden',
     }}>
       {!isMobile && <Sidebar page={page} setPage={setPage} user={user} />}
-
       <div style={{
         flex: 1,
         overflow: 'auto',
@@ -101,7 +100,6 @@ export default function App() {
         {page === PAGES.ZEN && <ZenMode isMobile={isMobile} />}
         {page === PAGES.MENTOR && <MentorIA trades={trades} isMobile={isMobile} />}
       </div>
-
       {isMobile && <BottomNav page={page} setPage={setPage} />}
     </div>
   )
@@ -261,12 +259,23 @@ function Dashboard({ trades, setPage, isMobile }) {
                 background: parseFloat(t.result) > 0 ? C.greenLight : C.redLight,
                 border: `1px solid ${parseFloat(t.result) > 0 ? 'rgba(22,163,74,0.2)' : 'rgba(220,38,38,0.2)'}`,
               }}>
-                <div>
+                <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 12, fontWeight: 600, color: C.text }}>{t.instrument} · {t.direction}</div>
                   <div style={{ fontSize: 10, color: C.textMid, marginTop: 2 }}>{t.date} · {t.session}</div>
+                  {t.tvLink && (
+                    <a href={t.tvLink} target="_blank" rel="noopener noreferrer"
+                      style={{ fontSize: 9, color: C.accent, textDecoration: 'none', fontFamily: C.mono }}>
+                      📊 TradingView
+                    </a>
+                  )}
                 </div>
-                <div style={{ fontFamily: C.mono, fontSize: 13, fontWeight: 700, color: parseFloat(t.result) > 0 ? C.green : C.red }}>
-                  {parseFloat(t.result) > 0 ? '+' : ''}${parseFloat(t.result).toFixed(0)}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  {t.image && (
+                    <img src={t.image} alt="trade" style={{ width: 36, height: 36, borderRadius: 4, objectFit: 'cover', border: `1px solid ${C.border}` }} />
+                  )}
+                  <div style={{ fontFamily: C.mono, fontSize: 13, fontWeight: 700, color: parseFloat(t.result) > 0 ? C.green : C.red }}>
+                    {parseFloat(t.result) > 0 ? '+' : ''}${parseFloat(t.result).toFixed(0)}
+                  </div>
                 </div>
               </div>
             ))
@@ -282,9 +291,19 @@ function NewTrade({ onAdd, onCancel, isMobile }) {
     date: new Date().toISOString().split('T')[0],
     time: new Date().toTimeString().slice(0, 5),
     instrument: 'NQ', direction: 'Long', session: 'NY Open',
-    setup: 'A+', result: '', emotion: 3, notes: '',
+    setup: 'A+', result: '', emotion: 3, notes: '', tvLink: '', image: '',
   })
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+  const fileRef = useRef(null)
+
+  const handleImage = (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    if (file.size > 2 * 1024 * 1024) { alert('Imagen muy grande. Máximo 2MB.'); return }
+    const reader = new FileReader()
+    reader.onload = (ev) => set('image', ev.target.result)
+    reader.readAsDataURL(file)
+  }
 
   return (
     <div style={{ maxWidth: 540 }}>
@@ -308,6 +327,35 @@ function NewTrade({ onAdd, onCancel, isMobile }) {
             placeholder="ej: 450 o -200"
             style={{ ...inputSt, color: form.result > 0 ? C.green : form.result < 0 ? C.red : C.text, fontWeight: 600 }} />
         </F>
+
+        <F label="Link TradingView (opcional)">
+          <input type="url" value={form.tvLink} onChange={e => set('tvLink', e.target.value)}
+            placeholder="https://www.tradingview.com/chart/..."
+            style={inputSt} />
+        </F>
+
+        <F label="Screenshot del trade (opcional)">
+          <input ref={fileRef} type="file" accept="image/*" onChange={handleImage}
+            style={{ display: 'none' }} />
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+            <button onClick={() => fileRef.current.click()} style={{
+              padding: '10px 16px', background: '#f9fafb', border: `1px solid ${C.border}`,
+              borderRadius: 8, cursor: 'pointer', fontFamily: C.font, fontSize: 13, color: C.textMid,
+              minHeight: 44,
+            }}>
+              📷 Subir imagen
+            </button>
+            {form.image && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <img src={form.image} alt="preview" style={{ width: 48, height: 48, borderRadius: 6, objectFit: 'cover', border: `1px solid ${C.border}` }} />
+                <button onClick={() => set('image', '')} style={{
+                  background: 'none', border: 'none', cursor: 'pointer', color: C.red, fontSize: 16,
+                }}>✕</button>
+              </div>
+            )}
+          </div>
+        </F>
+
         <F label="Estado emocional">
           <div style={{ display: 'flex', gap: isMobile ? 6 : 8, paddingTop: 4 }}>
             {['😫','😟','😐','😊','🧘'].map((e, i) => (
