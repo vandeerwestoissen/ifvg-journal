@@ -86,9 +86,8 @@ export default function App() {
   const saveTrades = (t) => { setTrades(t); storage.set('edge_trades', t) }
   const handleLogin = (u) => { setUser(u); storage.set('edge_user', u); setPage(PAGES.DASHBOARD) }
   const handleAddTrade = (trade) => { saveTrades([...trades, { ...trade, id: Date.now() }]); setPage(PAGES.DASHBOARD) }
-const handleLogout = () => { setUser(null); storage.set('edge_user', null); setPage(PAGES.LOGIN) }
-  if (page === PAGES.LOGIN) return <Login onLogin={handleLogin} isMobile={isMobile} />
-
+ const handleReset = () => { saveTrades([]); setPage(PAGES.DASHBOARD) }
+const handleLogout = async () => { await supabase.auth.signOut() }
   return (
     <div style={{
       display: 'flex',
