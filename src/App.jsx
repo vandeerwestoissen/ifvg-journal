@@ -617,7 +617,7 @@ function Settings({ user, onReset, onLogout, isMobile }) {
       </div>
 
       <div style={{ background: C.bgCard, border: `1px solid rgba(220,38,38,0.2)`, borderRadius: 16, padding: isMobile ? 20 : 28, boxShadow: '0 1px 4px rgba(0,0,0,0.04)', marginBottom: 14 }}>
-        <div style={{ fontSize: 11, fontWeight: 600, color: C.red, letterSpacing: 1, marginBottom: 18, fontFamily: C.mono }}>ZONA DE PELIGRO</div>
+        <div style={{ fontSize: 11, fontWeight: 600, color: C.red, letterSpacing: 1, marginBottom: 18, fontFamily: C.mono }}>⚠️ Careful — this deletes everything permanently · Ojo — borrás todo. No hay vuelta atrás.</div>
         {!resetConfirm ? (
           <button onClick={() => setResetConfirm(true)} style={{ width: '100%', padding: '13px', background: '#fff', border: `1px solid ${C.red}`, borderRadius: 8, color: C.red, cursor: 'pointer', fontFamily: C.font, fontSize: 14, fontWeight: 600, minHeight: 44 }}>
             🗑️ Resetear Journal
