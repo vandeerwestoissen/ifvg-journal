@@ -19,15 +19,14 @@ const C = {
   mono: '"JetBrains Mono", monospace',
   brand: '"Orbitron", sans-serif',
 }
-
-const PAGES = { DASHBOARD: 'dashboard', NEW_TRADE: 'new_trade', ZEN: 'zen', MENTOR: 'mentor', LOGIN: 'login' }
+const PAGES = { DASHBOARD: 'dashboard', NEW_TRADE: 'new_trade', ZEN: 'zen', MENTOR: 'mentor', LOGIN: 'login', SETTINGS: 'settings' }
 const NAV = [
   { id: 'dashboard', ico: '⊞', lbl: 'Dashboard' },
   { id: 'new_trade', ico: '+', lbl: 'Nuevo' },
   { id: 'zen', ico: '◎', lbl: 'Zen' },
   { id: 'mentor', ico: '⚡', lbl: 'Mentor' },
+  { id: 'settings', ico: '⚙', lbl: 'Settings' },
 ]
-
 const storage = {
   get: (key) => { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : null } catch { return null } },
   set: (key, val) => { try { localStorage.setItem(key, JSON.stringify(val)) } catch { } },
@@ -75,7 +74,8 @@ export default function App() {
   const saveTrades = (t) => { setTrades(t); storage.set('edge_trades', t) }
   const handleLogin = (u) => { setUser(u); storage.set('edge_user', u); setPage(PAGES.DASHBOARD) }
   const handleAddTrade = (trade) => { saveTrades([...trades, { ...trade, id: Date.now() }]); setPage(PAGES.DASHBOARD) }
-
+const handleReset = () => { saveTrades([]); setPage(PAGES.DASHBOARD) }
+const handleLogout = () => { setUser(null); storage.set('edge_user', null); setPage(PAGES.LOGIN) }
   if (page === PAGES.LOGIN) return <Login onLogin={handleLogin} isMobile={isMobile} />
 
   return (
@@ -99,9 +99,10 @@ export default function App() {
         {page === PAGES.NEW_TRADE && <NewTrade onAdd={handleAddTrade} onCancel={() => setPage(PAGES.DASHBOARD)} isMobile={isMobile} />}
         {page === PAGES.ZEN && <ZenMode isMobile={isMobile} />}
         {page === PAGES.MENTOR && <MentorIA trades={trades} isMobile={isMobile} />}
+    {page === PAGES.SETTINGS && <Settings user={user} onReset={handleReset} onLogout={handleLogout} isMobile={isMobile} />}
       </div>
-      {isMobile && <BottomNav page={page} setPage={setPage} />}
-    </div>
+          {isMobile && <BottomNav page={page} setPage={setPage} />}
+   </div>
   )
 }
 
@@ -495,6 +496,77 @@ function MentorIA({ trades, isMobile }) {
           placeholder="Pregunta sobre tu performance..." style={{ ...inputSt, flex: 1 }} disabled={loading} />
         <button onClick={send} disabled={loading || !input.trim()} style={{ ...btnP, opacity: loading || !input.trim() ? 0.4 : 1, padding: '12px 16px', minWidth: 44 }}>→</button>
       </div>
+    </div>
+  )
+}
+function Settings({ user, onReset, onLogout, isMobile }) {
+  const [profile, setProfile] = useState(() => storage.get('edge_profile') || {
+    name: user?.username || '', broker: '', accountSize: '', riskPct: '1',
+  })
+  const [resetConfirm, setResetConfirm] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const set = (k, v) => setProfile(p => ({ ...p, [k]: v }))
+
+  const save = () => {
+    storage.set('edge_profile', profile)
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
+  }
+
+  return (
+    <div style={{ maxWidth: 540 }}>
+      <div style={{ fontSize: isMobile ? 18 : 22, fontWeight: 700, marginBottom: 4, color: C.text }}>Configuración</div>
+      <div style={{ fontSize: 13, color: C.textMid, marginBottom: 20 }}>Perfil y preferencias del journal</div>
+
+      <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 16, padding: isMobile ? 20 : 28, boxShadow: '0 1px 4px rgba(0,0,0,0.04)', marginBottom: 14 }}>
+        <div style={{ fontSize: 11, fontWeight: 600, color: C.textMid, letterSpacing: 1, marginBottom: 18, fontFamily: C.mono }}>PERFIL DEL TRADER</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <F label="Nombre / Handle">
+            <input value={profile.name} onChange={e => set('name', e.target.value)} placeholder="Tu nombre o alias" style={inputSt} />
+          </F>
+          <F label="Broker / Plataforma">
+            <input value={profile.broker} onChange={e => set('broker', e.target.value)} placeholder="ej: Apex, FTMO, Topstep..." style={inputSt} />
+          </F>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <F label="Tamaño de Cuenta ($)">
+              <input type="number" value={profile.accountSize} onChange={e => set('accountSize', e.target.value)} placeholder="ej: 50000" style={inputSt} />
+            </F>
+            <F label="Riesgo Máximo (%)">
+              <input type="number" value={profile.riskPct} onChange={e => set('riskPct', e.target.value)} placeholder="ej: 1" style={inputSt} />
+            </F>
+          </div>
+          <button onClick={save} style={{ ...btnP, width: '100%', padding: '13px', background: saved ? C.green : C.accent }}>
+            {saved ? '✓ Guardado' : 'Guardar Cambios'}
+          </button>
+        </div>
+      </div>
+
+      <div style={{ background: C.bgCard, border: `1px solid rgba(220,38,38,0.2)`, borderRadius: 16, padding: isMobile ? 20 : 28, boxShadow: '0 1px 4px rgba(0,0,0,0.04)', marginBottom: 14 }}>
+        <div style={{ fontSize: 11, fontWeight: 600, color: C.red, letterSpacing: 1, marginBottom: 18, fontFamily: C.mono }}>ZONA DE PELIGRO</div>
+        {!resetConfirm ? (
+          <button onClick={() => setResetConfirm(true)} style={{ width: '100%', padding: '13px', background: '#fff', border: `1px solid ${C.red}`, borderRadius: 8, color: C.red, cursor: 'pointer', fontFamily: C.font, fontSize: 14, fontWeight: 600, minHeight: 44 }}>
+            🗑️ Resetear Journal
+          </button>
+        ) : (
+          <div>
+            <div style={{ fontSize: 13, color: C.text, marginBottom: 14, lineHeight: 1.6 }}>
+              ⚠️ <strong>¿Estás seguro?</strong> Se borrarán <strong>todos</strong> los trades. Esta acción no se puede deshacer.
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button onClick={() => setResetConfirm(false)} style={{ flex: 1, padding: '13px', background: '#fff', border: `1px solid ${C.border}`, borderRadius: 8, color: C.textMid, cursor: 'pointer', fontFamily: C.font, fontSize: 14, minHeight: 44 }}>
+                Cancelar
+              </button>
+              <button onClick={onReset} style={{ flex: 1, padding: '13px', background: C.red, border: 'none', borderRadius: 8, color: '#fff', cursor: 'pointer', fontFamily: C.font, fontSize: 14, fontWeight: 600, minHeight: 44 }}>
+                Sí, borrar todo
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <button onClick={onLogout} style={{ width: '100%', padding: '13px', background: '#fff', border: `1px solid ${C.border}`, borderRadius: 8, color: C.textMid, cursor: 'pointer', fontFamily: C.font, fontSize: 14, minHeight: 44 }}>
+        Cerrar Sesión
+      </button>
     </div>
   )
 }
