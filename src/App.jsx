@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react"
-
+import { supabase } from "./supabase"
 const C = {
   bg: '#f4f5f7',
   bgCard: '#ffffff',
@@ -65,16 +65,27 @@ export default function App() {
     link.href = 'https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=JetBrains+Mono:wght@400;600&family=Outfit:wght@300;400;500;600;700&display=swap'
     link.rel = 'stylesheet'
     document.head.appendChild(link)
-    const t = storage.get('edge_trades')
-    const u = storage.get('edge_user')
-    if (t) setTrades(t)
-    if (u) { setUser(u); setPage(PAGES.DASHBOARD) }
-  }, [])
+
+  supabase.auth.getSession().then(({ data: { session } }) => {
+    if (session?.user) {
+      setUser(session.user)
+      setPage(PAGES.DASHBOARD)
+      const t = storage.get('edge_trades')
+      if (t) setTrades(t)
+    }
+  })
+
+  const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    if (session?.user) { setUser(session.user); setPage(PAGES.DASHBOARD) }
+    else { setUser(null); setPage(PAGES.LOGIN) }
+  })
+
+  return () => subscription.unsubscribe()
+}, [])
 
   const saveTrades = (t) => { setTrades(t); storage.set('edge_trades', t) }
   const handleLogin = (u) => { setUser(u); storage.set('edge_user', u); setPage(PAGES.DASHBOARD) }
   const handleAddTrade = (trade) => { saveTrades([...trades, { ...trade, id: Date.now() }]); setPage(PAGES.DASHBOARD) }
-const handleReset = () => { saveTrades([]); setPage(PAGES.DASHBOARD) }
 const handleLogout = () => { setUser(null); storage.set('edge_user', null); setPage(PAGES.LOGIN) }
   if (page === PAGES.LOGIN) return <Login onLogin={handleLogin} isMobile={isMobile} />
 
@@ -107,25 +118,90 @@ const handleLogout = () => { setUser(null); storage.set('edge_user', null); setP
 }
 
 function Login({ onLogin, isMobile }) {
-  const [username, setUsername] = useState('')
-  const submit = () => { if (username.trim()) onLogin({ username: username.trim() }) }
+  const [mode, setMode] = useState('login')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [message, setMessage] = useState('')
+  const [error, setError] = useState('')
+
+  const handleLogin = async () => {
+    if (!email || !password) return
+    setLoading(true); setError('')
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+    if (error) setError(error.message)
+    else onLogin(data.user)
+    setLoading(false)
+  }
+
+  const handleRegister = async () => {
+    if (!email || !password) return
+    setLoading(true); setError('')
+    const { error } = await supabase.auth.signUp({ email, password })
+    if (error) setError(error.message)
+    else setMessage('¡Revisá tu mail para confirmar tu cuenta!')
+    setLoading(false)
+  }
+
+  const handleForgot = async () => {
+    if (!email) return
+    setLoading(true); setError('')
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: 'https://www.edgejournalapp.com'
+    })
+    if (error) setError(error.message)
+    else setMessage('¡Revisá tu mail para resetear tu contraseña!')
+    setLoading(false)
+  }
+
+  const action = mode === 'login' ? handleLogin : mode === 'register' ? handleRegister : handleForgot
+
   return (
     <div style={{ background: '#f4f5f7', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 16px' }}>
       <div style={{ width: '100%', maxWidth: 360, textAlign: 'center' }}>
         <div style={{ fontFamily: C.brand, color: C.accent, fontSize: 22, letterSpacing: 6, marginBottom: 6 }}>EDGE</div>
         <div style={{ color: C.textDim, fontSize: 11, letterSpacing: 3, marginBottom: 36, fontFamily: C.mono }}>TRADING JOURNAL</div>
         <div style={{ background: '#fff', border: `1px solid ${C.border}`, borderRadius: 16, padding: isMobile ? 24 : 32, boxShadow: '0 4px 24px rgba(0,0,0,0.06)' }}>
-          <input value={username} onChange={e => setUsername(e.target.value)} placeholder="Usuario"
-            style={inputSt} onKeyDown={e => e.key === 'Enter' && submit()} />
-          <input type="password" placeholder="Contrasena" style={{ ...inputSt, marginTop: 12 }} onKeyDown={e => e.key === 'Enter' && submit()} />
-          <button onClick={submit} style={{ ...btnP, width: '100%', marginTop: 18, padding: '13px' }}>Ingresar</button>
+          <div style={{ fontSize: 14, fontWeight: 600, color: C.text, marginBottom: 20 }}>
+            {mode === 'login' ? 'Iniciar Sesión' : mode === 'register' ? 'Crear Cuenta' : 'Recuperar Contraseña'}
+          </div>
+          {error && <div style={{ background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.2)', borderRadius: 8, padding: '10px 12px', fontSize: 12, color: C.red, marginBottom: 14, textAlign: 'left' }}>{error}</div>}
+          {message && <div style={{ background: 'rgba(22,163,74,0.08)', border: '1px solid rgba(22,163,74,0.2)', borderRadius: 8, padding: '10px 12px', fontSize: 12, color: C.green, marginBottom: 14, textAlign: 'left' }}>{message}</div>}
+          <input value={email} onChange={e => setEmail(e.target.value)} placeholder="Email"
+            type="email" style={inputSt} onKeyDown={e => e.key === 'Enter' && action()} />
+          {mode !== 'forgot' && (
+            <input type="password" value={password} onChange={e => setPassword(e.target.value)}
+              placeholder="Contraseña" style={{ ...inputSt, marginTop: 12 }}
+              onKeyDown={e => e.key === 'Enter' && action()} />
+          )}
+          <button onClick={action} disabled={loading}
+            style={{ ...btnP, width: '100%', marginTop: 18, padding: '13px', opacity: loading ? 0.6 : 1 }}>
+            {loading ? '...' : mode === 'login' ? 'Ingresar' : mode === 'register' ? 'Crear Cuenta' : 'Enviar Link'}
+          </button>
+          <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {mode === 'login' && <>
+              <button onClick={() => { setMode('register'); setError(''); setMessage('') }}
+                style={{ background: 'none', border: 'none', color: C.accent, cursor: 'pointer', fontSize: 13, fontFamily: C.font }}>
+                ¿No tenés cuenta? Registrate
+              </button>
+              <button onClick={() => { setMode('forgot'); setError(''); setMessage('') }}
+                style={{ background: 'none', border: 'none', color: C.textMid, cursor: 'pointer', fontSize: 12, fontFamily: C.font }}>
+                Olvidé mi contraseña
+              </button>
+            </>}
+            {mode !== 'login' && (
+              <button onClick={() => { setMode('login'); setError(''); setMessage('') }}
+                style={{ background: 'none', border: 'none', color: C.accent, cursor: 'pointer', fontSize: 13, fontFamily: C.font }}>
+                ← Volver al login
+              </button>
+            )}
+          </div>
         </div>
         <div style={{ color: C.textDim, fontSize: 10, marginTop: 18, fontFamily: C.mono }}>Edge Journal · v1.0</div>
       </div>
     </div>
   )
 }
-
 function Sidebar({ page, setPage, user }) {
   return (
     <div style={{ width: 200, background: C.bgSidebar, display: 'flex', flexDirection: 'column', padding: '24px 0', flexShrink: 0 }}>
