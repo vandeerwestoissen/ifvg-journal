@@ -74,11 +74,10 @@ export default function App() {
       if (t) setTrades(t)
     }
   })
-
-  const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-    if (session?.user) { setUser(session.user); setPage(PAGES.DASHBOARD) }
-    else { setUser(null); setPage(PAGES.LOGIN) }
-  })
+const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+  if (!session?.user) { setUser(null); setPage(PAGES.LOGIN) }
+  else { setUser(session.user) }
+})
 
   return () => subscription.unsubscribe()
 }, [])
@@ -362,15 +361,26 @@ function Dashboard({ trades, setPage, isMobile }) {
   )
 }
 
+const INSTRUMENTS = ['NQ','MNQ','ES','MES','YM','MYM','RTY','M2K','GC','CL','SI','BTC','ETH','SPY','QQQ','IWM','Otro']
+const DRAFT_KEY = 'edge_trade_draft'
 function NewTrade({ onAdd, onCancel, isMobile }) {
-  const [form, setForm] = useState({
+  const [form, setForm] = useState(() => storage.get(DRAFT_KEY) || {
     date: new Date().toISOString().split('T')[0],
     time: new Date().toTimeString().slice(0, 5),
     instrument: 'NQ', direction: 'Long', session: 'NY Open',
-    setup: 'A+', result: '', emotion: 3, notes: '', tvLink: '', image: '',
+    setup: 'A+', result: '', emotion: 3, notes: '', tvLink: '', image: '', customInstrument: '',
   })
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
   const fileRef = useRef(null)
+
+  useEffect(() => { storage.set(DRAFT_KEY, form) }, [form])
+
+  const handleAdd = () => {
+    if (!form.result) return
+    const finalInstrument = form.instrument === 'Otro' ? (form.customInstrument || 'Otro') : form.instrument
+    storage.set(DRAFT_KEY, null)
+    onAdd({ ...form, instrument: finalInstrument })
+  }
 
   const handleImage = (e) => {
     const file = e.target.files[0]
@@ -391,7 +401,15 @@ function NewTrade({ onAdd, onCancel, isMobile }) {
           <F label="Hora NY"><input type="time" value={form.time} onChange={e => set('time', e.target.value)} style={inputSt} /></F>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          <F label="Instrumento"><Sel value={form.instrument} opts={['NQ','MNQ','ES','MES']} onChange={v => set('instrument', v)} /></F>
+          <F label="Instrumento">
+            <select value={form.instrument} onChange={e => set('instrument', e.target.value)} style={{ ...inputSt, cursor: 'pointer', minHeight: 44 }}>
+              {INSTRUMENTS.map(o => <option key={o}>{o}</option>)}
+            </select>
+            {form.instrument === 'Otro' && (
+              <input value={form.customInstrument} onChange={e => set('customInstrument', e.target.value)}
+                placeholder="ej: EURUSD, AAPL, BTC..." style={{ ...inputSt, marginTop: 8 }} />
+            )}
+          </F>
           <F label="Direccion"><Sel value={form.direction} opts={['Long','Short']} onChange={v => set('direction', v)} /></F>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
@@ -403,43 +421,32 @@ function NewTrade({ onAdd, onCancel, isMobile }) {
             placeholder="ej: 450 o -200"
             style={{ ...inputSt, color: form.result > 0 ? C.green : form.result < 0 ? C.red : C.text, fontWeight: 600 }} />
         </F>
-
         <F label="Link TradingView (opcional)">
           <input type="url" value={form.tvLink} onChange={e => set('tvLink', e.target.value)}
-            placeholder="https://www.tradingview.com/chart/..."
-            style={inputSt} />
+            placeholder="https://www.tradingview.com/chart/..." style={inputSt} />
         </F>
-
         <F label="Screenshot del trade (opcional)">
-          <input ref={fileRef} type="file" accept="image/*" onChange={handleImage}
-            style={{ display: 'none' }} />
+          <input ref={fileRef} type="file" accept="image/*" onChange={handleImage} style={{ display: 'none' }} />
           <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
             <button onClick={() => fileRef.current.click()} style={{
               padding: '10px 16px', background: '#f9fafb', border: `1px solid ${C.border}`,
-              borderRadius: 8, cursor: 'pointer', fontFamily: C.font, fontSize: 13, color: C.textMid,
-              minHeight: 44,
-            }}>
-              📷 Subir imagen
-            </button>
+              borderRadius: 8, cursor: 'pointer', fontFamily: C.font, fontSize: 13, color: C.textMid, minHeight: 44,
+            }}>📷 Subir imagen</button>
             {form.image && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <img src={form.image} alt="preview" style={{ width: 48, height: 48, borderRadius: 6, objectFit: 'cover', border: `1px solid ${C.border}` }} />
-                <button onClick={() => set('image', '')} style={{
-                  background: 'none', border: 'none', cursor: 'pointer', color: C.red, fontSize: 16,
-                }}>✕</button>
+                <button onClick={() => set('image', '')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.red, fontSize: 16 }}>✕</button>
               </div>
             )}
           </div>
         </F>
-
         <F label="Estado emocional">
           <div style={{ display: 'flex', gap: isMobile ? 6 : 8, paddingTop: 4 }}>
             {['😫','😟','😐','😊','🧘'].map((e, i) => (
               <button key={i} onClick={() => set('emotion', i + 1)} style={{
                 fontSize: isMobile ? 24 : 22, border: `2px solid ${form.emotion === i + 1 ? C.accent : C.border}`,
                 background: form.emotion === i + 1 ? C.accentLight : '#fff', borderRadius: 8,
-                padding: isMobile ? '7px 10px' : '5px 9px', cursor: 'pointer', flex: 1,
-                minHeight: 44,
+                padding: isMobile ? '7px 10px' : '5px 9px', cursor: 'pointer', flex: 1, minHeight: 44,
               }}>{e}</button>
             ))}
           </div>
@@ -450,8 +457,8 @@ function NewTrade({ onAdd, onCancel, isMobile }) {
             style={{ ...inputSt, resize: 'vertical', lineHeight: 1.7 }} />
         </F>
         <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-          <button onClick={onCancel} style={{ flex: 1, padding: '13px', background: '#fff', border: `1px solid ${C.border}`, borderRadius: 8, color: C.textMid, cursor: 'pointer', fontFamily: C.font, fontSize: 14, minHeight: 44 }}>Cancelar</button>
-          <button onClick={() => { if (!form.result) return; onAdd(form) }} style={{ ...btnP, flex: 2, padding: '13px' }}>Guardar Trade</button>
+          <button onClick={() => { storage.set(DRAFT_KEY, null); onCancel() }} style={{ flex: 1, padding: '13px', background: '#fff', border: `1px solid ${C.border}`, borderRadius: 8, color: C.textMid, cursor: 'pointer', fontFamily: C.font, fontSize: 14, minHeight: 44 }}>Cancelar</button>
+          <button onClick={handleAdd} style={{ ...btnP, flex: 2, padding: '13px' }}>Guardar Trade</button>
         </div>
       </div>
     </div>
