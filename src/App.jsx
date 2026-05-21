@@ -84,19 +84,35 @@ useEffect(() => {
 }, [])
 
   const saveTrades = async (t) => { setTrades(t) }
-const handleLogin = (u) => { setUser(u); setPage(PAGES.DASHBOARD) }
- async (trade) => {
-  const { data: { user: currentUser } } = await supabase.auth.getUser()
-  if (!currentUser) return
-  const { customInstrument, ...tradeData } = trade
-  delete tradeData.id
-  const finalTrade = { ...tradeData, user_id: currentUser.id }
-  const { data, error } = await supabase.from('trades').insert([finalTrade]).select()
-  if (!error && data) setTrades(t => [...t, data[0]])
-  setPage(PAGES.DASHBOARD)
-}
-const handleReset = async () => { await supabase.from('trades').delete().eq('user_id', user.id); setTrades([]); setPage(PAGES.DASHBOARD) }
-const handleLogout = async () => { await supabase.auth.signOut() }
+  const handleLogin = (u) => { setUser(u); setPage(PAGES.DASHBOARD) }
+  const handleAddTrade = async (trade) => {
+    const { data: { session } } = await supabase.auth.getSession()
+    const currentUser = session?.user
+    if (!currentUser) return
+    const { customInstrument, ...tradeData } = trade
+    delete tradeData.id
+    const finalTrade = { ...tradeData, user_id: currentUser.id }
+    const { data, error } = await supabase.from('trades').insert([finalTrade]).select()
+    if (error) { console.error('Insert error:', error); return }
+    if (data) setTrades(t => [...t, data[0]])
+    setPage(PAGES.DASHBOARD)
+  }
+  const handleReset = async () => {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session?.user) return
+    await supabase.from('trades').delete().eq('user_id', session.user.id)
+    setTrades([])
+    setPage(PAGES.DASHBOARD)
+  }
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    setUser(null)
+    setTrades([])
+    setPage(PAGES.LOGIN)
+  }
+
+  if (page === PAGES.LOGIN) return <Login onLogin={handleLogin} isMobile={isMobile} />
+
   return (
     <div style={{
       display: 'flex',
@@ -118,10 +134,10 @@ const handleLogout = async () => { await supabase.auth.signOut() }
         {page === PAGES.NEW_TRADE && <NewTrade onAdd={handleAddTrade} onCancel={() => setPage(PAGES.DASHBOARD)} isMobile={isMobile} />}
         {page === PAGES.ZEN && <ZenMode isMobile={isMobile} />}
         {page === PAGES.MENTOR && <MentorIA trades={trades} isMobile={isMobile} />}
-    {page === PAGES.SETTINGS && <Settings user={user} onReset={handleReset} onLogout={handleLogout} isMobile={isMobile} />}
+        {page === PAGES.SETTINGS && <Settings user={user} onReset={handleReset} onLogout={handleLogout} isMobile={isMobile} />}
       </div>
-          {isMobile && <BottomNav page={page} setPage={setPage} />}
-   </div>
+      {isMobile && <BottomNav page={page} setPage={setPage} />}
+    </div>
   )
 }
 
