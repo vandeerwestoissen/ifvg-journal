@@ -362,8 +362,6 @@ function Dashboard({ trades, setPage, isMobile }) {
 }
 
 const INSTRUMENTS = ['NQ','MNQ','ES','MES','YM','MYM','RTY','M2K','GC','CL','SI','BTC','ETH','SPY','QQQ','IWM','Otro']
-const INSTRUMENTS = ['NQ','MNQ','ES','MES','YM','MYM','RTY','M2K','GC','CL','SI','BTC','ETH','SPY','QQQ','IWM','Otro']
-const DRAFT_KEY = 'edge_trade_draft'
 const formatDate = (d) => { const dd = String(d.getDate()).padStart(2,'0'); const mm = String(d.getMonth()+1).padStart(2,'0'); const yyyy = d.getFullYear(); return dd+'/'+mm+'/'+yyyy }
 
 function NewTrade({ onAdd, onCancel, isMobile }) {
@@ -448,7 +446,7 @@ function NewTrade({ onAdd, onCancel, isMobile }) {
           <button onClick={handleAdd} style={{ ...btnP, flex: 2, padding: '13px' }}>Guardar Trade</button>
         </div>
       </div>
-    </div>
+    </div>  
   )
 }function F({ label, children }) {
   return <div><div style={{ fontSize: 11, color: C.textMid, fontWeight: 500, marginBottom: 6 }}>{label}</div>{children}</div>
