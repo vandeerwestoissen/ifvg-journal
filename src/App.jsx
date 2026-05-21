@@ -85,10 +85,12 @@ useEffect(() => {
 
   const saveTrades = async (t) => { setTrades(t) }
 const handleLogin = (u) => { setUser(u); setPage(PAGES.DASHBOARD) }
-const handleAddTrade = async (trade) => {
+ async (trade) => {
+  const { data: { user: currentUser } } = await supabase.auth.getUser()
+  if (!currentUser) return
   const { customInstrument, ...tradeData } = trade
-  const finalTrade = { ...tradeData, user_id: user.id }
-  delete finalTrade.id
+  delete tradeData.id
+  const finalTrade = { ...tradeData, user_id: currentUser.id }
   const { data, error } = await supabase.from('trades').insert([finalTrade]).select()
   if (!error && data) setTrades(t => [...t, data[0]])
   setPage(PAGES.DASHBOARD)
