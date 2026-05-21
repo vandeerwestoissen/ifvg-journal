@@ -362,17 +362,19 @@ function Dashboard({ trades, setPage, isMobile }) {
 }
 
 const INSTRUMENTS = ['NQ','MNQ','ES','MES','YM','MYM','RTY','M2K','GC','CL','SI','BTC','ETH','SPY','QQQ','IWM','Otro']
+const INSTRUMENTS = ['NQ','MNQ','ES','MES','YM','MYM','RTY','M2K','GC','CL','SI','BTC','ETH','SPY','QQQ','IWM','Otro']
 const DRAFT_KEY = 'edge_trade_draft'
+const formatDate = (d) => { const dd = String(d.getDate()).padStart(2,'0'); const mm = String(d.getMonth()+1).padStart(2,'0'); const yyyy = d.getFullYear(); return dd+'/'+mm+'/'+yyyy }
+
 function NewTrade({ onAdd, onCancel, isMobile }) {
   const [form, setForm] = useState(() => storage.get(DRAFT_KEY) || {
-    date: new Date().toISOString().split('T')[0],
+    date: formatDate(new Date()),
     time: new Date().toTimeString().slice(0, 5),
     instrument: 'NQ', direction: 'Long', session: 'NY Open',
     setup: 'A+', result: '', emotion: 3, notes: '', tvLink: '', image: '', customInstrument: '',
   })
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
   const fileRef = useRef(null)
-
   useEffect(() => { storage.set(DRAFT_KEY, form) }, [form])
 
   const handleAdd = () => {
@@ -385,7 +387,7 @@ function NewTrade({ onAdd, onCancel, isMobile }) {
   const handleImage = (e) => {
     const file = e.target.files[0]
     if (!file) return
-    if (file.size > 2 * 1024 * 1024) { alert('Imagen muy grande. Máximo 2MB.'); return }
+    if (file.size > 2 * 1024 * 1024) { alert('Imagen muy grande. Maximo 2MB.'); return }
     const reader = new FileReader()
     reader.onload = (ev) => set('image', ev.target.result)
     reader.readAsDataURL(file)
@@ -395,7 +397,7 @@ function NewTrade({ onAdd, onCancel, isMobile }) {
     <div style={{ maxWidth: 540 }}>
       <div style={{ fontSize: isMobile ? 18 : 22, fontWeight: 700, marginBottom: 4, color: C.text }}>Nuevo Trade</div>
       <div style={{ fontSize: 13, color: C.textMid, marginBottom: 20 }}>Registra tu operacion</div>
-      <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 16, padding: isMobile ? 20 : 28, boxShadow: '0 1px 4px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={{ background: C.bgCard, border: '1px solid '+C.border, borderRadius: 16, padding: isMobile ? 20 : 28, boxShadow: '0 1px 4px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <F label="Fecha"><input type="date" value={form.date} onChange={e => set('date', e.target.value)} style={inputSt} /></F>
           <F label="Hora NY"><input type="time" value={form.time} onChange={e => set('time', e.target.value)} style={inputSt} /></F>
@@ -405,10 +407,7 @@ function NewTrade({ onAdd, onCancel, isMobile }) {
             <select value={form.instrument} onChange={e => set('instrument', e.target.value)} style={{ ...inputSt, cursor: 'pointer', minHeight: 44 }}>
               {INSTRUMENTS.map(o => <option key={o}>{o}</option>)}
             </select>
-            {form.instrument === 'Otro' && (
-              <input value={form.customInstrument} onChange={e => set('customInstrument', e.target.value)}
-                placeholder="ej: EURUSD, AAPL, BTC..." style={{ ...inputSt, marginTop: 8 }} />
-            )}
+            {form.instrument === 'Otro' && <input value={form.customInstrument} onChange={e => set('customInstrument', e.target.value)} placeholder="ej: EURUSD, AAPL..." style={{ ...inputSt, marginTop: 8 }} />}
           </F>
           <F label="Direccion"><Sel value={form.direction} opts={['Long','Short']} onChange={v => set('direction', v)} /></F>
         </div>
@@ -417,24 +416,18 @@ function NewTrade({ onAdd, onCancel, isMobile }) {
           <F label="Setup"><Sel value={form.setup} opts={['A+','A','B','B-']} onChange={v => set('setup', v)} /></F>
         </div>
         <F label="Resultado ($)">
-          <input type="number" inputMode="decimal" value={form.result} onChange={e => set('result', e.target.value)}
-            placeholder="ej: 450 o -200"
-            style={{ ...inputSt, color: form.result > 0 ? C.green : form.result < 0 ? C.red : C.text, fontWeight: 600 }} />
+          <input type="number" inputMode="decimal" value={form.result} onChange={e => set('result', e.target.value)} placeholder="ej: 450 o -200" style={{ ...inputSt, color: form.result > 0 ? C.green : form.result < 0 ? C.red : C.text, fontWeight: 600 }} />
         </F>
         <F label="Link TradingView (opcional)">
-          <input type="url" value={form.tvLink} onChange={e => set('tvLink', e.target.value)}
-            placeholder="https://www.tradingview.com/chart/..." style={inputSt} />
+          <input type="url" value={form.tvLink} onChange={e => set('tvLink', e.target.value)} placeholder="https://www.tradingview.com/chart/..." style={inputSt} />
         </F>
         <F label="Screenshot del trade (opcional)">
           <input ref={fileRef} type="file" accept="image/*" onChange={handleImage} style={{ display: 'none' }} />
           <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-            <button onClick={() => fileRef.current.click()} style={{
-              padding: '10px 16px', background: '#f9fafb', border: `1px solid ${C.border}`,
-              borderRadius: 8, cursor: 'pointer', fontFamily: C.font, fontSize: 13, color: C.textMid, minHeight: 44,
-            }}>📷 Subir imagen</button>
+            <button onClick={() => fileRef.current.click()} style={{ padding: '10px 16px', background: '#f9fafb', border: '1px solid '+C.border, borderRadius: 8, cursor: 'pointer', fontFamily: C.font, fontSize: 13, color: C.textMid, minHeight: 44 }}>📷 Subir imagen</button>
             {form.image && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <img src={form.image} alt="preview" style={{ width: 48, height: 48, borderRadius: 6, objectFit: 'cover', border: `1px solid ${C.border}` }} />
+                <img src={form.image} alt="preview" style={{ width: 48, height: 48, borderRadius: 6, objectFit: 'cover', border: '1px solid '+C.border }} />
                 <button onClick={() => set('image', '')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.red, fontSize: 16 }}>✕</button>
               </div>
             )}
@@ -443,29 +436,21 @@ function NewTrade({ onAdd, onCancel, isMobile }) {
         <F label="Estado emocional">
           <div style={{ display: 'flex', gap: isMobile ? 6 : 8, paddingTop: 4 }}>
             {['😫','😟','😐','😊','🧘'].map((e, i) => (
-              <button key={i} onClick={() => set('emotion', i + 1)} style={{
-                fontSize: isMobile ? 24 : 22, border: `2px solid ${form.emotion === i + 1 ? C.accent : C.border}`,
-                background: form.emotion === i + 1 ? C.accentLight : '#fff', borderRadius: 8,
-                padding: isMobile ? '7px 10px' : '5px 9px', cursor: 'pointer', flex: 1, minHeight: 44,
-              }}>{e}</button>
+              <button key={i} onClick={() => set('emotion', i+1)} style={{ fontSize: isMobile ? 24 : 22, border: '2px solid '+(form.emotion === i+1 ? C.accent : C.border), background: form.emotion === i+1 ? C.accentLight : '#fff', borderRadius: 8, padding: isMobile ? '7px 10px' : '5px 9px', cursor: 'pointer', flex: 1, minHeight: 44 }}>{e}</button>
             ))}
           </div>
         </F>
         <F label="Notas / Reflexion">
-          <textarea value={form.notes} onChange={e => set('notes', e.target.value)}
-            placeholder="Seguiste el plan? Que aprendiste?" rows={3}
-            style={{ ...inputSt, resize: 'vertical', lineHeight: 1.7 }} />
+          <textarea value={form.notes} onChange={e => set('notes', e.target.value)} placeholder="Seguiste el plan? Que aprendiste?" rows={3} style={{ ...inputSt, resize: 'vertical', lineHeight: 1.7 }} />
         </F>
         <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-          <button onClick={() => { storage.set(DRAFT_KEY, null); onCancel() }} style={{ flex: 1, padding: '13px', background: '#fff', border: `1px solid ${C.border}`, borderRadius: 8, color: C.textMid, cursor: 'pointer', fontFamily: C.font, fontSize: 14, minHeight: 44 }}>Cancelar</button>
+          <button onClick={() => { storage.set(DRAFT_KEY, null); onCancel() }} style={{ flex: 1, padding: '13px', background: '#fff', border: '1px solid '+C.border, borderRadius: 8, color: C.textMid, cursor: 'pointer', fontFamily: C.font, fontSize: 14, minHeight: 44 }}>Cancelar</button>
           <button onClick={handleAdd} style={{ ...btnP, flex: 2, padding: '13px' }}>Guardar Trade</button>
         </div>
       </div>
     </div>
   )
-}
-
-function F({ label, children }) {
+}function F({ label, children }) {
   return <div><div style={{ fontSize: 11, color: C.textMid, fontWeight: 500, marginBottom: 6 }}>{label}</div>{children}</div>
 }
 
