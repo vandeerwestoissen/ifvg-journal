@@ -375,28 +375,20 @@ function Dashboard({ trades, setPage, isMobile }) {
               }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 12, fontWeight: 600, color: C.text }}>{t.instrument} · {t.direction}</div>
-<div style={{ flex: 1, minWidth: 0 }}>
-  <div style={{ fontSize: 12, fontWeight: 600, color: C.text }}>{t.instrument} · {t.direction}</div>
-<div style={{ fontSize: 10, color: C.textMid, marginTop: 2 }}>{formatDate(t.date)} · {t.session}</div>  {t.notes && (
-    <div style={{ fontSize: 10, color: C.textMid, marginTop: 3, fontStyle: 'italic',
-      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 160 }}>
-      💬 {t.notes}
-    </div>
-  )}
-  {(t.tv_link || t.tvLink) && (
-    <a href={t.tv_link || t.tvLink} target="_blank" rel="noopener noreferrer"
-      style={{ fontSize: 9, color: C.accent, textDecoration: 'none', fontFamily: C.mono }}>
-      📊 TradingView
-    </a>
-  )}
-</div>                  {t.tvLink && (
-                    <a href={t.tvLink} target="_blank" rel="noopener noreferrer"
+                  <div style={{ fontSize: 10, color: C.textMid, marginTop: 2 }}>{formatDate(t.date)} · {t.session}</div>
+                  {t.notes && (
+                    <div style={{ fontSize: 10, color: C.textMid, marginTop: 3, fontStyle: 'italic',
+                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 160 }}>
+                      💬 {t.notes}
+                    </div>
+                  )}
+                  {(t.tv_link || t.tvLink) && (
+                    <a href={t.tv_link || t.tvLink} target="_blank" rel="noopener noreferrer"
                       style={{ fontSize: 9, color: C.accent, textDecoration: 'none', fontFamily: C.mono }}>
                       📊 TradingView
                     </a>
                   )}
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                </div>                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   {t.image && (
                     <img src={t.image} alt="trade" style={{ width: 36, height: 36, borderRadius: 4, objectFit: 'cover', border: `1px solid ${C.border}` }} />
                   )}
