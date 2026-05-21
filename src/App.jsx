@@ -377,8 +377,7 @@ function Dashboard({ trades, setPage, isMobile }) {
                   <div style={{ fontSize: 12, fontWeight: 600, color: C.text }}>{t.instrument} · {t.direction}</div>
 <div style={{ flex: 1, minWidth: 0 }}>
   <div style={{ fontSize: 12, fontWeight: 600, color: C.text }}>{t.instrument} · {t.direction}</div>
-  <div style={{ fontSize: 10, color: C.textMid, marginTop: 2 }}>{t.date} · {t.session}</div>
-  {t.notes && (
+<div style={{ fontSize: 10, color: C.textMid, marginTop: 2 }}>{formatDate(t.date)} · {t.session}</div>  {t.notes && (
     <div style={{ fontSize: 10, color: C.textMid, marginTop: 3, fontStyle: 'italic',
       whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 160 }}>
       💬 {t.notes}
@@ -413,7 +412,12 @@ function Dashboard({ trades, setPage, isMobile }) {
     </div>
   )
 }
-
+const formatDate = (d) => {
+  if (!d) return ''
+  const [y, m, day] = d.split('-')
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+  return `${day} ${months[parseInt(m)-1]} ${y}`
+}
 const INSTRUMENTS = ['NQ','MNQ','ES','MES','YM','MYM','RTY','M2K','GC','CL','SI','BTC','ETH','SPY','QQQ','IWM','Otro']
 const DRAFT_KEY = 'edge_trade_draft'
 function NewTrade({ onAdd, onCancel, isMobile }) {
@@ -466,8 +470,7 @@ function NewTrade({ onAdd, onCancel, isMobile }) {
           <F label="Direccion"><Sel value={form.direction} opts={['Long','Short']} onChange={v => set('direction', v)} /></F>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          <F label="Sesion"><Sel value={form.session} opts={['Pre-Market','NY Open','NY AM','NY Lunch']} onChange={v => set('session', v)} /></F>
-          <F label="Setup"><Sel value={form.setup} opts={['A+','A','B','B-']} onChange={v => set('setup', v)} /></F>
+<F label="Sesion"><Sel value={form.session} opts={['Asia / Tokyo','London Open','London Close','Pre-Market','NY Open','NY AM','NY Lunch','NY PM','NY Close','Overnight']} onChange={v => set('session', v)} /></F>          <F label="Setup"><Sel value={form.setup} opts={['A+','A','B','B-']} onChange={v => set('setup', v)} /></F>
         </div>
         <F label="Resultado ($)">
           <input type="number" inputMode="decimal" value={form.result} onChange={e => set('result', e.target.value)}
