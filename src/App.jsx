@@ -91,8 +91,21 @@ useEffect(() => {
     if (!currentUser) return
     const { customInstrument, ...tradeData } = trade
     delete tradeData.id
-    const finalTrade = { ...tradeData, user_id: currentUser.id }
-    const { data, error } = await supabase.from('trades').insert([finalTrade]).select()
+const finalTrade = {
+  user_id: currentUser.id,
+  date: tradeData.date,
+  time: tradeData.time,
+  instrument: tradeData.instrument,
+  direction: tradeData.direction,
+  session: tradeData.session,
+  setup: tradeData.setup,
+  result: parseFloat(tradeData.result),
+  emotion: tradeData.emotion,
+  notes: tradeData.notes,
+  tv_link: tradeData.tvLink,
+  image: tradeData.image,
+}    
+const { data, error } = await supabase.from('trades').insert([finalTrade]).select()
     if (error) { console.error('Insert error:', error); return }
     if (data) setTrades(t => [...t, data[0]])
     setPage(PAGES.DASHBOARD)
