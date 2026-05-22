@@ -576,16 +576,24 @@ function MentorIA({ trades, isMobile }) {
   const endRef = useRef(null)
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [msgs])
 
-  const send = async () => {
-    if (!input.trim() || loading) return
-    const txt = input.trim(); setInput('')
-    setMsgs(m => [...m, { role: 'user', text: txt }])
+const send = async (quickText) => {
+    const txt = quickText || input.trim()
+    if (!txt || loading) return
+    if (!quickText) setInput('')
+          setMsgs(m => [...m, { role: 'user', text: txt }])
     setLoading(true)
-    const ctx = trades.length > 0 ? `Trades:\n${trades.map(t => `${t.date} | ${t.instrument} ${t.direction} | ${t.session} | Setup ${t.setup} | $${t.result}`).join('\n')}` : 'Sin trades aun.'
+    const wins = trades.filter(t => parseFloat(t.result) > 0)
+    const losses = trades.filter(t => parseFloat(t.result) <= 0)
+    const wr = trades.length ? Math.round(wins.length / trades.length * 100) : 0
+    const pnl = trades.reduce((s, t) => s + parseFloat(t.result || 0), 0)
+    const avgW = wins.length ? wins.reduce((s, t) => s + parseFloat(t.result), 0) / wins.length : 0
+    const avgL = losses.length ? Math.abs(losses.reduce((s, t) => s + parseFloat(t.result), 0) / losses.length) : 0
+    const bySession = {}
+    trades.forEach(t => { if (!bySession[t.session]) bySession[t.session] = { w: 0, l: 0, pnl: 0 }; if (parseFloat(t.result) > 0) bySession[t.session].w++; else bySession[t.session].l++; bySession[t.session].pnl += parseFloat(t.result) })
+    const ctx = trades.length > 0 ? `STATS: ${trades.length} trades | WR: ${wr}% | PnL: $${pnl.toFixed(0)} | Avg Win: $${avgW.toFixed(0)} | Avg Loss: $${avgL.toFixed(0)}\nSESIONES:\n${Object.entries(bySession).map(([s,d]) => `- ${s}: ${d.w}W/${d.l}L PnL $${d.pnl.toFixed(0)}`).join('\n')}\nTRADES:\n${trades.slice(-10).map(t => `${t.date} | ${t.instrument} ${t.direction} | ${t.session} | ${t.setup} | $${t.result} | nota: ${t.notes || '-'}`).join('\n')}` : 'Sin trades aun.'
     try {
       const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 1000,
+method: 'POST', headers: { 'Content-Type': 'application/json', 'x-api-key': import.meta.env.VITE_ANTHROPIC_KEY, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },        body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 1000,
           system: `Eres el Mentor IA de Edge Journal. Trading ICT/Smart Money. Español argentino, directo y preciso. ${ctx}`,
           messages: msgs.concat({ role: 'user', text: txt }).slice(-12).map(m => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.text })) })
       })
@@ -598,8 +606,12 @@ function MentorIA({ trades, isMobile }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: isMobile ? 'calc(100vh - 136px)' : 'calc(100vh - 56px)', maxWidth: 680 }}>
       <div style={{ fontSize: isMobile ? 18 : 22, fontWeight: 700, marginBottom: 4, color: C.text }}>Mentor IA</div>
-      <div style={{ fontSize: 13, color: C.textMid, marginBottom: 14 }}>Tu coach de trading personal</div>
-      <div style={{ flex: 1, background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 14, padding: isMobile ? 14 : 20, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 12, boxShadow: '0 1px 4px rgba(0,0,0,0.04)', WebkitOverflowScrolling: 'touch' }}>
+<div style={{ fontSize: 12, color: C.textMid, marginBottom: 10 }}>Análisis basado en {trades.length} trades reales</div>
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
+        {['¿Cuál es mi mejor sesión?','¿Dónde pierdo más?','Analizá mi psicología','Resumen de performance'].map(q => (
+          <button key={q} onClick={() => send(q)} disabled={loading} style={{ fontSize: 11, padding: '6px 12px', borderRadius: 20, background: C.accentLight, border: 'none', color: C.accent, cursor: 'pointer', fontFamily: C.font, opacity: loading ? 0.5 : 1 }}>{q}</button>
+        ))}
+      </div>      <div style={{ flex: 1, background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 14, padding: isMobile ? 14 : 20, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 12, boxShadow: '0 1px 4px rgba(0,0,0,0.04)', WebkitOverflowScrolling: 'touch' }}>
         {msgs.map((m, i) => (
           <div key={i} style={{ display: 'flex', justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start' }}>
             <div style={{ maxWidth: isMobile ? '88%' : '80%', padding: '11px 14px', borderRadius: 12, fontSize: 13, lineHeight: 1.7,
